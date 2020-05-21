@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="b7e90935-828d-4855-bff2-cf5bc8f1a8ba" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="82650049-552e-4326-9d86-8daf0fa3f9a6" >
+		<http:request-connection host="localhost" port="8080" />
+	</http:request-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="6fc7d3a1-6e5c-4fec-871e-b357fb9ab2bb" >
+		<jms:active-mq-connection >
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="getAllProducts" doc:id="ba7f8010-e109-4fa8-8ed2-880206383ed9" >
+		<http:listener doc:name="Listener" doc:id="a94252b4-5ed4-4683-8656-32f64d871f12" config-ref="HTTP_Listener_config" path="/getAll"/>
+		<http:request method="GET" doc:name="Request" doc:id="908ee2ae-a391-47dd-8eb8-f4c67b9c2ccd" config-ref="HTTP_Request_configuration" path="/api/product"/>
+	</flow>
+	<flow name="ActiveMQ" doc:id="db6cd10f-9995-46a9-bb67-e77246e31fed" >
+		<jms:listener doc:name="Listener" doc:id="7fda25e7-4d7d-4955-a278-edcbb368c658" config-ref="JMS_Config" destination="queue1">
+			<jms:consumer-type >
+				<jms:queue-consumer />
+			</jms:consumer-type>
+		</jms:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="2b6f14b1-9363-42f3-8f2a-c16c5fdd99fa" message="#[payload]"/>
+	</flow>
+	<flow name="getById" doc:id="0e41eada-d745-4be9-a7b6-472d75be62a8" >
+		<http:listener doc:name="Listener" doc:id="869275e0-2e64-400a-9b0c-912bce8b69c8" config-ref="HTTP_Listener_config" path="/get/{id}"/>
+		<set-variable value="#[message.attributes.uriParams.id]" doc:name="id" doc:id="98199e10-eaac-42ac-88e4-2641326247a5" variableName="id"/>
+		<http:request method="GET" doc:name="Request" doc:id="3b94cfda-0ee0-4240-a0cb-7d0e83d3b3db" config-ref="HTTP_Request_configuration" path="/api/product/{id}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	id : vars.id
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="deleteById" doc:id="b030bb6a-3203-4c95-a38f-d2ea90cf5474" >
+		<http:listener doc:name="Listener" doc:id="18da6e3f-e427-461d-8403-4e0f1a617218" config-ref="HTTP_Listener_config" path="/delete/{id}"/>
+		<set-variable value="#[message.attributes.uriParams.id]" doc:name="id" doc:id="fe831445-d301-449e-8727-a94ce88eb593" variableName="id"/>
+		<http:request method="DELETE" doc:name="Request" doc:id="e0fb59ac-6df8-4ab1-95be-a2d65b611ee7" config-ref="HTTP_Request_configuration" path="/api/product/{id}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	id : vars.id
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="addNew" doc:id="623d01f8-2eb1-491c-8dbb-6c3e1f0e6549" >
+		<http:listener doc:name="Listener" doc:id="55338a9d-82e3-4109-b827-9791d01f6a21" config-ref="HTTP_Listener_config" path="/add"/>
+		<set-payload value="#[message.payload]" doc:name="JsonProduct" doc:id="5366774b-7b7c-46ba-af4e-c9c0872a7daf" mimeType="application/json"/>
+		<http:request method="POST" doc:name="Request" doc:id="a62dfc05-a91e-4b12-971e-f48fe6be78ca" config-ref="HTTP_Request_configuration" path="/api/product"/>
+	</flow>
+	<flow name="edit" doc:id="bb7af7f7-bb4d-41fe-a17a-e4443a2277aa" >
+		<http:listener doc:name="Listener" doc:id="5989076a-9862-4411-a593-72b509e009ba" config-ref="HTTP_Listener_config" path="/edit/{id}"/>
+		<set-variable value="#[message.attributes.uriParams.id]" doc:name="id" doc:id="59e46a39-d45d-4623-bebd-46229e6102af" variableName="id"/>
+		<set-payload value="#[message.payload]" doc:name="Edit Json" doc:id="52ece186-ea7c-4fa4-ab36-ef6b41343123" mimeType="application/json"/>
+		<http:request method="PUT" doc:name="Request" doc:id="26ccea83-aaf6-4103-812f-29e0042731b7" config-ref="HTTP_Request_configuration" path="/api/product/{id}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	id : vars.id
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+</mule>
