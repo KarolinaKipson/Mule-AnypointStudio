@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="56ba12a4-abea-4bba-8bf4-9d39cfa0b992">
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="d940cd2a-c231-4387-aa0a-8250d352bf7e">
+		<http:request-connection host="localhost" port="8080" />
+	</http:request-config>
+	<flow name="muleapiGetAll" doc:id="42e66a9a-500b-4c73-9d58-763f17f882d5" >
+		<http:listener doc:name="Listener" doc:id="3812a95b-e923-4cf7-af2f-5214f8f0a047" config-ref="HTTP_Listener_config" path="/getAll"/>
+		<http:request method="GET" doc:name="Request" doc:id="d153fa34-9147-4fea-b00f-243fdb65e0df" path="/api/speaker" config-ref="HTTP_Request_configuration">
+		</http:request>
+	</flow>
+	<flow name="muleapiGetById" doc:id="3a75faa0-21d6-4465-b03a-1d0a943cec70" >
+		<http:listener doc:name="Listener" doc:id="f2f4a8d1-bd33-48ed-b5e0-85acdcc04cfd" config-ref="HTTP_Listener_config" path="/getSpeaker/{id}" allowedMethods="GET">
+			<http:error-response statusCode="404" />
+		</http:listener>
+		<set-variable value='#[message.attributes.uriParams.id]' doc:name="id" doc:id="5a46b954-8225-4b6d-bb66-b3f44ad7a0fc" variableName="id"/>
+		<http:request method="GET" doc:name="Request" doc:id="46c40bcb-a8b4-4ee4-8267-3a152575f2c1" path="/api/speaker/{id}" config-ref="HTTP_Request_configuration" >
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	id : vars.id
+}]]]></http:uri-params>
+		</http:request>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="NotFound Error" doc:id="020dc2bc-e36e-4e83-9e46-514491c34b37" type="HTTP:NOT_FOUND">
+				<ee:transform doc:name="Transform Message" doc:id="c1e82cb8-4d06-46c8-b277-033c3a328862" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "There is no such speaker." ++ (error.description default "")
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="muleapiDeleteById" doc:id="29e0fc5f-07c2-4ef0-b6da-ec6d02c3d715" >
+		<http:listener doc:name="Listener" doc:id="5b163978-1efd-4a5a-8fa9-708cb95ab9ed" config-ref="HTTP_Listener_config" path="/delete/{id}"/>
+		<set-variable value="#[message.attributes.uriParams.id]" doc:name="id" doc:id="32f38480-6546-4156-b117-b0f72bbf3212" variableName="id"/>
+		<http:request method="DELETE" doc:name="Delete" doc:id="21cb0ba2-4f30-447b-a0a8-8409386f33b7" config-ref="HTTP_Request_configuration" path="/api/speaker/{id}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	id : vars.id
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="muleapiPost" doc:id="e49d860b-e047-4158-a0a7-e7524d42242d" >
+		<http:listener doc:name="PostListener" doc:id="c702758c-6ff3-457e-b468-b9538ff24114" config-ref="HTTP_Listener_config" path="/post"/>
+		<set-payload value="#[message.payload]" doc:name="Speaker Json" doc:id="87b5e4b8-7678-4a5e-9191-18750936b40d" mimeType="application/json"/>
+		<http:request method="POST" doc:name="Request" doc:id="1cc61093-9f35-414d-91d2-28efe942f879" config-ref="HTTP_Request_configuration" path="/api/speaker">
+		</http:request>
+	</flow>
+	<flow name="muleapiPut" doc:id="a76805ea-95c7-45bd-99f5-852f9fea8d98" >
+		<http:listener doc:name="Listener" doc:id="b2628db2-7ec9-4189-944f-d220487244c3" config-ref="HTTP_Listener_config" path="/edit/{id}"/>
+		<set-variable value="#[message.attributes.uriParams.id]" doc:name="id" doc:id="3398073e-4bac-4881-9337-26c18f93e33f" variableName="id"/>
+		<set-payload value="#[message.payload]" doc:name="Edit Json" doc:id="75654c8a-598e-4888-be6b-024f3758b6e6" mimeType="application/json"/>
+		<http:request method="PUT" doc:name="Request" doc:id="b1be548f-819f-4042-9399-40c3e5aa42d5" config-ref="HTTP_Request_configuration" path="/api/speaker/{id}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	id : vars.id
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+</mule>

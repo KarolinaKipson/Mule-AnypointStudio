@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a83ec84f-fa98-4ae4-aee3-6558985f90df" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="32c03c4f-7071-4223-beb2-4d828a922eee" >
+		<http:request-connection host="localhost" port="8080" />
+	</http:request-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="ba06baa1-7f67-4de1-bcf9-77276c7a2927" >
+		<jms:active-mq-connection >
+			<jms:caching-strategy >
+				<jms:no-caching />
+			</jms:caching-strategy>
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="mulelecturesFlow" doc:id="2a233bce-b5e6-4a7e-8f66-b4e221a89fc0" >
+		<http:listener doc:name="Listener" doc:id="23eaf64a-34aa-4485-9fb6-295972a46698" config-ref="HTTP_Listener_config" path="/getLecture/{word}"/>
+		<set-variable value="#[message.attributes.uriParams.word]" doc:name="word" doc:id="f0c572a8-33bb-4011-b3dc-d1f15565b8ad" variableName="word"/>
+		<http:request method="GET" doc:name="Request" doc:id="6f3f977d-7e4b-40c4-aac9-c8e9263b37e2" config-ref="HTTP_Request_configuration" path="/api/lecture/get/{word}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	word : vars.word
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="mulelecturesFlow1" doc:id="9e3b9794-84a7-42f1-90ff-1ae3f530f62f" >
+		<jms:listener doc:name="Listener" doc:id="296e199c-8fce-41b7-91b4-7f34228382ec" config-ref="JMS_Config" destination="queue1"/>
+		<logger level="INFO" doc:name="Logger" doc:id="07a8afa1-3f9e-4f12-90a3-ae5363da413e" message="#[payload]"/>
+	</flow>
+	<flow name="GetLecturesBySpeakerId" doc:id="60caf03f-0694-41cc-8a20-388d6d23ac9a" >
+		<http:listener doc:name="Listener" doc:id="36e7a2dc-e08c-43b2-9b2e-41cfeba899d1" config-ref="HTTP_Listener_config" path="/get/{id}"/>
+		<set-variable value="#[message.attributes.uriParams.id]" doc:name="id" doc:id="fd8b2bcb-7ed4-40b6-8827-0368a19676d6" variableName="id"/>
+		<http:request method="GET" doc:name="Request" doc:id="dca11916-3c68-43ee-9765-37cbe45f5f06" config-ref="HTTP_Request_configuration" path="/api/lecture/getAll/{id}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	id : vars.id
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+</mule>
